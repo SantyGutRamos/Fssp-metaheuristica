@@ -1,0 +1,4 @@
+fssp
+pruebas
+*.o
+__pycache__/

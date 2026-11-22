@@ -1,0 +1,35 @@
+=== Datos (p_ji) ===
+J1:   8   7   8   total = 23
+J2:   1   9   8   total = 18
+J3:   6   2   6   total = 14
+J4:   2   5   5   total = 12
+J5:   8   6   8   total = 22
+
+=== NEH paso a paso ===
+Orden por tiempo total decreciente: J1 J5 J2 J3 J4
+Insertar J1 en (): pos1=23 -> J1 (Cmax 23)
+Insertar J5 en (J1): pos1=31 pos2=31 -> J5 J1 (Cmax 31)
+Insertar J2 en (J5 J1): pos1=34 pos2=39 pos3=40 -> J2 J5 J1 (Cmax 34)
+Insertar J3 en (J2 J5 J1): pos1=41 pos2=40 pos3=40 pos4=40 -> J2 J3 J5 J1 (Cmax 40)
+Insertar J4 en (J2 J3 J5 J1): pos1=46 pos2=45 pos3=45 pos4=45 pos5=45 -> J2 J4 J3 J5 J1 (Cmax 45)
+NEH final: J2 J4 J3 J5 J1  Cmax = 45
+            M1    M2    M3
+    J2       1    10    18
+    J4       3    15    23
+    J3       9    17    29
+    J5      17    23    37
+    J1      25    32    45
+
+=== Una iteración de Iterated Greedy (d = 2) ===
+DESTRUCCIÓN: se sacan J4 J2 -> parcial = (J3 J5 J1), Cmax parcial = 37
+CONSTRUCCIÓN: insertar J4: pos1=39 pos2=39 pos3=41 pos4=42 -> J4 J3 J5 J1 (Cmax 39)
+CONSTRUCCIÓN: insertar J2: pos1=45 pos2=46 pos3=43 pos4=47 pos5=48 -> J4 J3 J2 J5 J1 (Cmax 43)
+Tras construcción: Cmax = 43
+Tras búsqueda local: J4 J3 J2 J5 J1  Cmax = 43
+Aceptación: actual = 45, nueva = 43, T = 0.237 -> MEJORA, se acepta.
+            M1    M2    M3
+    J4       2     7    12
+    J3       8    10    18
+    J2       9    19    27
+    J5      17    25    35
+    J1      25    32    43
