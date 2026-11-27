@@ -1,15 +1,3 @@
-// metaheuristicas_iterativas.hpp
-// Metaheurísticas ITERATIVAS: repiten un ciclo "modificar -> mejorar -> decidir"
-// alrededor de una heurística base.
-//   1) ILS - Iterated Local Search (Lourenço, Martin y Stützle, 2003)
-//        perturbación -> búsqueda local -> criterio de aceptación
-//   2) IG  - Iterated Greedy (Ruiz y Stützle, 2007)
-//        destrucción -> construcción (tipo NEH) -> [búsqueda local] -> aceptación
-//
-// Criterios de aceptación (deciden desde qué solución se continúa):
-//   - BETTER       : solo acepta si es mejor o igual -> solo INTENSIFICA.
-//   - RANDOM WALK  : acepta siempre                  -> solo DIVERSIFICA.
-//   - SA (recocido): acepta peores con prob. e^(-Δ/T) -> EQUILIBRA ambas.
 #pragma once
 #include "heuristicas.hpp"
 #include <cmath>
@@ -24,7 +12,6 @@ inline const char* nombreAceptacion(Aceptacion a) {
     }
 }
 
-// Devuelve true si la solución candidata (cNueva) reemplaza a la actual (cActual).
 inline bool aceptar(Aceptacion crit, int cNueva, int cActual, double T, std::mt19937& rng) {
     std::uniform_real_distribution<double> U01(0.0, 1.0);
     switch (crit) {
@@ -37,19 +24,10 @@ inline bool aceptar(Aceptacion crit, int cNueva, int cActual, double T, std::mt1
     return false;
 }
 
-// ---------------------------------------------------------------------------
-// ILS
-//   s  = BúsquedaLocal(NEH)
-//   repetir hasta agotar el tiempo:
-//       s' = Perturbar(s)          // "sacudir": k intercambios aleatorios
-//       s''= BúsquedaLocal(s')     // bajar al óptimo local más cercano
-//       s  = Aceptar(s, s'')       // Better / Random Walk / SA
-//       actualizar la mejor solución
-// ---------------------------------------------------------------------------
 struct ParamILS {
     Aceptacion criterio = Aceptacion::Better;
-    int fuerza = 3;        // número de intercambios aleatorios en la perturbación
-    double Tp = 0.4;       // para el criterio SA
+    int fuerza = 3;
+    double Tp = 0.4;
 };
 
 inline Resultado ils(const Instancia& ins, double limiteMs, std::mt19937& rng,
@@ -66,9 +44,9 @@ inline Resultado ils(const Instancia& ins, double limiteMs, std::mt19937& rng,
     while (reloj.ms() < limiteMs) {
         ++it;
         Permutacion s2 = s;
-        for (int k = 0; k < prm.fuerza; ++k) movimientoIntercambio(s2, rng);   // perturbación
-        int c2 = busquedaLocal(ins, s2, rng);                                   // búsqueda local
-        if (aceptar(prm.criterio, c2, cS, T, rng)) { s.swap(s2); cS = c2; }     // aceptación
+        for (int k = 0; k < prm.fuerza; ++k) movimientoIntercambio(s2, rng);
+        int c2 = busquedaLocal(ins, s2, rng);
+        if (aceptar(prm.criterio, c2, cS, T, rng)) { s.swap(s2); cS = c2; }
         if (cS < mejor.cmax) {
             mejor.pi = s;
             mejor.cmax = cS;
@@ -80,22 +58,12 @@ inline Resultado ils(const Instancia& ins, double limiteMs, std::mt19937& rng,
     return mejor;
 }
 
-// ---------------------------------------------------------------------------
-// IG (Iterated Greedy) de Ruiz y Stützle (2007)
-//   π = NEH  (+ búsqueda local si usarLS)
-//   repetir hasta agotar el tiempo:
-//       DESTRUCCIÓN : sacar d trabajos al azar  -> πD (parcial) y πR (removidos)
-//       CONSTRUCCIÓN: reinsertar cada trabajo de πR en su mejor posición (como NEH)
-//       [BÚSQUEDA LOCAL por reinserción]        -> solo en IG+LS
-//       ACEPTACIÓN  : si mejora se acepta; si empeora, con prob. e^(-Δ/T)
-// ---------------------------------------------------------------------------
 struct ParamIG {
-    int d = 4;             // trabajos destruidos por iteración
-    double Tp = 0.4;       // temperatura constante
-    bool usarLS = true;    // IG+LS (true) o IG-LS (false)
+    int d = 4;
+    double Tp = 0.4;
+    bool usarLS = true;
 };
 
-// Un paso de destrucción + construcción (se expone aparte para la traza didáctica).
 inline int destruirYConstruir(const Instancia& ins, Permutacion& pi, int d, std::mt19937& rng,
                               Permutacion* removidosOut = nullptr) {
     Permutacion removidos;

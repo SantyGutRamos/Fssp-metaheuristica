@@ -1,26 +1,11 @@
-// metaheuristicas_basicas.hpp
-// Metaheurísticas "básicas" de trayectoria: trabajan con UNA solución actual y se
-// mueven por la vecindad, pero (a diferencia de la búsqueda local) pueden aceptar
-// movimientos que empeoran para escapar de óptimos locales.
-//   1) Recocido simulado (Simulated Annealing, Kirkpatrick et al., 1983)
-//   2) Búsqueda tabú (Tabu Search, Glover, 1986)
-// Ambas parten de la solución NEH y se detienen por tiempo.
 #pragma once
 #include "heuristicas.hpp"
 #include <cmath>
 #include <cstdint>
 
-// ---------------------------------------------------------------------------
-// RECOCIDO SIMULADO
-//   - Vecino aleatorio por reinserción.
-//   - Si el vecino es mejor o igual -> se acepta.
-//   - Si es peor en Δ -> se acepta con probabilidad e^(-Δ/T).
-//   - La temperatura T baja geométricamente de T0 a Tf a lo largo del tiempo:
-//       al inicio acepta mucho (diversifica), al final casi nada (intensifica).
-// ---------------------------------------------------------------------------
 struct ParamSA {
-    double tp0 = 5.0;   // T0 = temperaturaConstante(tp0)
-    double tpf = 0.1;   // Tf = temperaturaConstante(tpf)
+    double tp0 = 5.0;
+    double tpf = 0.1;
 };
 
 inline Resultado recocidoSimulado(const Instancia& ins, double limiteMs, std::mt19937& rng,
@@ -38,10 +23,10 @@ inline Resultado recocidoSimulado(const Instancia& ins, double limiteMs, std::mt
     long long it = 0;
     double T = T0;
     while (true) {
-        if ((it & 63) == 0) {                      // revisar el reloj cada 64 iteraciones
+        if ((it & 63) == 0) {
             double t = reloj.ms();
             if (t >= limiteMs) break;
-            T = T0 * std::pow(Tf / T0, t / limiteMs);   // enfriamiento geométrico en el tiempo
+            T = T0 * std::pow(Tf / T0, t / limiteMs);
         }
         ++it;
         Permutacion vecino = actual;
@@ -63,16 +48,6 @@ inline Resultado recocidoSimulado(const Instancia& ins, double limiteMs, std::mt
     return mejor;
 }
 
-// ---------------------------------------------------------------------------
-// BÚSQUEDA TABÚ
-//   - En cada iteración revisa la vecindad de reinserción completa: para cada
-//     trabajo, su mejor nueva posición (aceleración de Taillard).
-//   - Se mueve al MEJOR vecino aunque sea peor que la solución actual.
-//   - Memoria de corto plazo: el trabajo recién movido queda "tabú" (no se puede
-//     volver a mover) durante `tenencia` iteraciones -> evita ciclar.
-//   - Criterio de aspiración: un movimiento tabú se permite si produce una
-//     solución mejor que la mejor encontrada hasta ahora.
-// ---------------------------------------------------------------------------
 struct ParamTabu {
     int tenencia = 7;
 };
@@ -85,7 +60,7 @@ inline Resultado busquedaTabu(const Instancia& ins, double limiteMs, std::mt1993
     Resultado mejor{actual, cActual, 0.0, 0};
     if (tr) tr->anotar(reloj.ms(), cActual);
 
-    std::vector<long long> tabuHasta(ins.n, 0);   // iteración hasta la que cada trabajo es tabú
+    std::vector<long long> tabuHasta(ins.n, 0);
     std::uniform_int_distribution<int> desempate(0, 1 << 30);
     long long it = 0;
     while (reloj.ms() < limiteMs) {
@@ -97,7 +72,7 @@ inline Resultado busquedaTabu(const Instancia& ins, double limiteMs, std::mt1993
             sinJob.erase(sinJob.begin() + desde);
             auto costos = evaluarInserciones(ins, sinJob, job);
             for (int pos = 0; pos < static_cast<int>(costos.size()); ++pos) {
-                if (pos == desde) continue;                      // sería la misma solución
+                if (pos == desde) continue;
                 int c = costos[pos];
                 bool esTabu = tabuHasta[job] > it;
                 bool aspiracion = c < mejor.cmax;
@@ -108,7 +83,7 @@ inline Resultado busquedaTabu(const Instancia& ins, double limiteMs, std::mt1993
                 }
             }
         }
-        if (bestJob < 0) {                     // todo tabú: liberar la lista
+        if (bestJob < 0) {
             std::fill(tabuHasta.begin(), tabuHasta.end(), 0);
             continue;
         }
